@@ -1,0 +1,8 @@
+requests>=2.31.0
+PyMuPDF>=1.23.8
+Pillow>=10.0.0
+pytesseract>=0.3.10
+tiktoken>=0.5.2
+tqdm>=4.66.0
+supabase>=2.0.0
+python-dotenv>=1.0.0
