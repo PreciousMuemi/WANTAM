@@ -7,6 +7,7 @@ Error: 'different vector dimensions 1536 and 3072'
 ```
 
 ### ✅ What's Already Done
+
 - [x] Fixed katiba_rag.py to use `models/gemini-embedding-001`
 - [x] Updated embedding dimensions constant to 3072
 - [x] Updated supabase_setup.sql schema
@@ -14,6 +15,7 @@ Error: 'different vector dimensions 1536 and 3072'
 ### 🔧 What You Need to Do (5 minutes)
 
 #### Step 1: Update Supabase Schema
+
 Go to [Supabase Console](https://supabase.com) → SQL Editor → New Query
 
 Copy and paste this entire SQL block:
@@ -27,8 +29,8 @@ drop index if exists documents_embedding_idx;
 alter table documents alter column embedding set data type vector(3072);
 
 -- Recreate index
-create index if not exists documents_embedding_idx 
-  on documents using ivfflat (embedding vector_cosine_ops) 
+create index if not exists documents_embedding_idx
+  on documents using ivfflat (embedding vector_cosine_ops)
   with (lists = 100);
 
 -- Recreate function
@@ -84,11 +86,13 @@ python re_embed_gemini.py
 ```
 
 This will:
+
 1. Load the 54 chunks from `extracted_chunks/chunks.json`
 2. Generate 3072-dimensional embeddings using Gemini
 3. Upload them to Supabase
 
 **Expected output:**
+
 ```
 ============================================================
 Re-embedding Chunks with Gemini
@@ -116,6 +120,7 @@ python katiba_rag.py
 ```
 
 Ask a question like:
+
 ```
 You: What is the constitution?
 ```
@@ -124,17 +129,18 @@ You should now get answers with source citations!
 
 ### ✅ Summary of Changes
 
-| Component | Change | Why |
-|-----------|--------|-----|
-| katiba_rag.py | embedding model: `embedding-001` → `gemini-embedding-001` | Old model deprecated |
-| katiba_rag.py | `EMBEDDING_DIMENSIONS` | 384 → 3072 | Gemini outputs 3072 dims |
-| supabase_setup.sql | Column type | vector(1536) → vector(3072) | Match embedding dimensions |
-| supabase_setup.sql | RPC function | Updated vector type | Match column change |
-| Database | Data | Clear old 1536D vectors | They don't work with new schema |
+| Component          | Change                                                    | Why                         |
+| ------------------ | --------------------------------------------------------- | --------------------------- | ------------------------------- |
+| katiba_rag.py      | embedding model: `embedding-001` → `gemini-embedding-001` | Old model deprecated        |
+| katiba_rag.py      | `EMBEDDING_DIMENSIONS`                                    | 384 → 3072                  | Gemini outputs 3072 dims        |
+| supabase_setup.sql | Column type                                               | vector(1536) → vector(3072) | Match embedding dimensions      |
+| supabase_setup.sql | RPC function                                              | Updated vector type         | Match column change             |
+| Database           | Data                                                      | Clear old 1536D vectors     | They don't work with new schema |
 
 ### 🎯 Timeline
+
 - SQL migration: ~1 minute
-- Delete old embeddings: ~5 seconds  
+- Delete old embeddings: ~5 seconds
 - Re-embed 54 chunks: ~2-3 minutes
 - Test: ~1 minute
 - **Total: ~5 minutes**
@@ -142,16 +148,19 @@ You should now get answers with source citations!
 ### ⚠️ If You Get Stuck
 
 **Error during SQL migration?**
+
 - Check Supabase console for error message
 - Ensure you're in the correct database
 - Try dropping each component separately
 
 **Error during re-embedding?**
+
 - Verify `GEMINI_API_KEY` is set: `echo $env:GEMINI_API_KEY`
 - Check `extracted_chunks/chunks.json` exists and has data
 - Try running just the Gemini embedding: `python test_gemini.py`
 
 **Error running katiba_rag.py?**
+
 - Verify Supabase migration completed
 - Check database has documents: Query `select count(*) from documents;`
 - Check embeddings have 3072 dimensions: Query `select array_length(embedding, 1) from documents limit 1;`

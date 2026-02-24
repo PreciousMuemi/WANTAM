@@ -13,10 +13,7 @@ create table if not exists documents (
   embedding vector(3072)
 );
 
--- Create index for faster similarity search
-create index if not exists documents_embedding_idx 
-  on documents using ivfflat (embedding vector_cosine_ops) 
-  with (lists = 100);
+-- Note: No embedding index for 3072-dim Gemini vectors (pgvector index limit is 2000)
 
 -- Create index for URL lookups
 create index if not exists documents_source_url_idx 

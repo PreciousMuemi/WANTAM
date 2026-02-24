@@ -1,11 +1,13 @@
 # 🎯 GEMINI RAG - GET STARTED IN 5 MINUTES
 
 ## The Problem You Had
+
 ```
 Error: 'different vector dimensions 1536 and 3072'
 ```
 
 ## The Solution (Already Implemented ✓)
+
 - ✅ Fixed embedding model: `gemini-embedding-001` (3072 dims)
 - ✅ Updated database schema: `vector(3072)`
 - ✅ Created re-embedding script
@@ -18,7 +20,8 @@ Error: 'different vector dimensions 1536 and 3072'
 ## 4 SIMPLE STEPS (Total: 5 minutes)
 
 ### STEP 1: Update Database (1 minute)
-1. Go to [Supabase Console](https://supabase.com) 
+
+1. Go to [Supabase Console](https://supabase.com)
 2. Click **SQL Editor** → **New Query**
 3. Copy-paste this exact SQL block:
 
@@ -30,7 +33,7 @@ create index if not exists documents_embedding_idx on documents using ivfflat (e
 create or replace function match_documents (query_embedding vector(3072), match_count int default 5)
 returns table (id bigint, text text, source_url text, document_title text, chunk_id int, page_number int, similarity float)
 language sql stable as $$
-  select documents.id, documents.text, documents.source_url, documents.document_title, documents.chunk_id, documents.page_number, 
+  select documents.id, documents.text, documents.source_url, documents.document_title, documents.chunk_id, documents.page_number,
     1 - (documents.embedding <=> query_embedding) as similarity
   from documents where documents.embedding is not null
   order by documents.embedding <=> query_embedding limit match_count;
@@ -42,11 +45,13 @@ grant execute on function match_documents(vector, int) to anon, authenticated;
 5. Wait for green ✓ success message
 
 ### STEP 2: Clear Old Data (30 seconds)
+
 1. **New Query** in same Supabase window
 2. Paste: `delete from documents;`
 3. Click **Run**
 
 ### STEP 3: Re-embed Documents (2-3 minutes)
+
 1. Open PowerShell/Terminal
 2. Navigate to your project:
    ```bash
@@ -59,6 +64,7 @@ grant execute on function match_documents(vector, int) to anon, authenticated;
 4. Wait for output showing ✓ success
 
 ### STEP 4: Test It! (1 minute)
+
 1. Run:
    ```bash
    python katiba_rag.py
@@ -74,7 +80,7 @@ grant execute on function match_documents(vector, int) to anon, authenticated;
 
 ---
 
-## ✅ That's It! 
+## ✅ That's It!
 
 You now have a working Gemini RAG system! 🎉
 
@@ -84,19 +90,20 @@ You now have a working Gemini RAG system! 🎉
 
 For complete details, see these files:
 
-| File | Contains |
-|------|----------|
-| **CHECKLIST.md** | Step-by-step checklist you can print |
-| **SOLUTION_SUMMARY.md** | Complete technical documentation |
-| **CHANGES_MADE.md** | Exact code changes and why |
-| **GEMINI_FIX.md** | Setup guide with troubleshooting |
-| **STATUS.md** | Overall system status |
+| File                    | Contains                             |
+| ----------------------- | ------------------------------------ |
+| **CHECKLIST.md**        | Step-by-step checklist you can print |
+| **SOLUTION_SUMMARY.md** | Complete technical documentation     |
+| **CHANGES_MADE.md**     | Exact code changes and why           |
+| **GEMINI_FIX.md**       | Setup guide with troubleshooting     |
+| **STATUS.md**           | Overall system status                |
 
 ---
 
 ## What You'll Get
 
 A working system that:
+
 - 📝 Takes your questions about Kenyan law
 - 🔍 Searches 54 document chunks
 - 🤖 Generates accurate answers using Gemini
@@ -140,6 +147,7 @@ Answer with Source Citations
 ## Questions?
 
 Everything is documented in the markdown files provided. Pick one:
+
 - **Quick:** [GEMINI_FIX.md](GEMINI_FIX.md)
 - **Complete:** [SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md)
 - **Technical:** [CHANGES_MADE.md](CHANGES_MADE.md)

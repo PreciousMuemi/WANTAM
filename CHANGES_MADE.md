@@ -3,11 +3,13 @@
 ## 1. katiba_rag.py - Line 48
 
 ### BEFORE
+
 ```python
 EMBEDDING_DIMENSIONS = 384  # For sentence-transformers
 ```
 
 ### AFTER
+
 ```python
 EMBEDDING_DIMENSIONS = 3072  # For Gemini embedding (gemini-embedding-001)
 ```
@@ -19,6 +21,7 @@ EMBEDDING_DIMENSIONS = 3072  # For Gemini embedding (gemini-embedding-001)
 ## 2. katiba_rag.py - Line ~126
 
 ### BEFORE
+
 ```python
 elif self.provider == "gemini":
     try:
@@ -33,6 +36,7 @@ elif self.provider == "gemini":
 ```
 
 ### AFTER
+
 ```python
 elif self.provider == "gemini":
     try:
@@ -53,6 +57,7 @@ elif self.provider == "gemini":
 ## 3. supabase_setup.sql - Line 11
 
 ### BEFORE
+
 ```sql
 create table if not exists documents (
   id bigint primary key generated always as identity,
@@ -68,6 +73,7 @@ create table if not exists documents (
 ```
 
 ### AFTER
+
 ```sql
 create table if not exists documents (
   id bigint primary key generated always as identity,
@@ -89,6 +95,7 @@ create table if not exists documents (
 ## 4. supabase_setup.sql - Line 27
 
 ### BEFORE
+
 ```sql
 -- Create RPC function for vector similarity search
 create or replace function match_documents (
@@ -98,6 +105,7 @@ create or replace function match_documents (
 ```
 
 ### AFTER
+
 ```sql
 -- Create RPC function for vector similarity search
 create or replace function match_documents (
@@ -113,6 +121,7 @@ create or replace function match_documents (
 ## 5. NEW FILE: re_embed_gemini.py
 
 Created a script that:
+
 1. Loads chunks from `extracted_chunks/chunks.json`
 2. Generates 3072D embeddings using `models/gemini-embedding-001`
 3. Uploads to Supabase with correct dimensions
@@ -122,6 +131,7 @@ Created a script that:
 ## 6. NEW FILES: Documentation
 
 Created comprehensive guides:
+
 - **SOLUTION_SUMMARY.md** - Complete technical solution
 - **GEMINI_FIX.md** - Quick fix guide
 - **CHECKLIST.md** - Step-by-step checklist
@@ -132,14 +142,14 @@ Created comprehensive guides:
 
 ## Summary of Changes
 
-| Type | File | Change | Reason |
-|------|------|--------|--------|
-| Code | katiba_rag.py | EMBEDDING_DIMENSIONS: 384→3072 | Gemini outputs 3072D |
-| Code | katiba_rag.py | Embedding model: text-embedding-004→gemini-embedding-001 | Correct model exists |
-| Code | supabase_setup.sql | vector(1536)→vector(3072) | Match embedding dims |
-| Code | supabase_setup.sql | Function parameter updated | Match column type |
-| Script | re_embed_gemini.py | NEW | Re-embed chunks with Gemini |
-| Docs | Multiple .md files | NEW | Complete guides |
+| Type   | File               | Change                                                   | Reason                      |
+| ------ | ------------------ | -------------------------------------------------------- | --------------------------- |
+| Code   | katiba_rag.py      | EMBEDDING_DIMENSIONS: 384→3072                           | Gemini outputs 3072D        |
+| Code   | katiba_rag.py      | Embedding model: text-embedding-004→gemini-embedding-001 | Correct model exists        |
+| Code   | supabase_setup.sql | vector(1536)→vector(3072)                                | Match embedding dims        |
+| Code   | supabase_setup.sql | Function parameter updated                               | Match column type           |
+| Script | re_embed_gemini.py | NEW                                                      | Re-embed chunks with Gemini |
+| Docs   | Multiple .md files | NEW                                                      | Complete guides             |
 
 ---
 

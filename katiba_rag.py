@@ -42,7 +42,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
 HF_API_KEY = os.getenv("HF_API_KEY", "")
 
-TOP_K_RESULTS = 5
+TOP_K_RESULTS = 8
 EMBEDDING_DIMENSIONS = 3072  # For Gemini embedding (gemini-embedding-001)
 
 # System prompt for Claude
@@ -51,8 +51,8 @@ to ordinary citizens in plain, simple English.
 
 IMPORTANT INSTRUCTIONS:
 1. Answer ONLY using the context provided below.
-2. If the answer is not in the context, say: "I don't have that information, but you can check kenyalaw.org"
-3. Always cite which document/article your answer comes from.
+2. If the answer is not in the context or the context is unrelated, say: "I don't have that information, but you can check kenyalaw.org" and list the 1-2 most relevant document titles from the context.
+3. Always cite which document/article your answer comes from when you do answer.
 4. Use simple, clear language that anyone can understand.
 5. Break down complex legal concepts into everyday examples.
 6. Be accurate - do not invent information or interpret laws beyond what's in the context."""
@@ -241,7 +241,25 @@ class VectorStore:
                 )
                 retrieved.append(chunk)
             
-            logger.info(f"Retrieved {len(retrieved)} documents (similarity: {retrieved[0].similarity_score:.4f} - {retrieved[-1].similarity_score:.4f})")
+            if not retrieved:
+                logger.info("Retrieved 0 documents")
+                return retrieved
+
+            # Simple keyword overlap rerank to improve relevance
+            keywords = [w for w in re.findall(r"[a-zA-Z]{4,}", query.lower())]
+            if keywords:
+                def keyword_score(chunk: RetrievedChunk) -> int:
+                    hay = f"{chunk.document_title} {chunk.text}".lower()
+                    return sum(1 for k in keywords if k in hay)
+
+                retrieved.sort(
+                    key=lambda c: (keyword_score(c), c.similarity_score),
+                    reverse=True
+                )
+
+            logger.info(
+                f"Retrieved {len(retrieved)} documents (similarity: {retrieved[0].similarity_score:.4f} - {retrieved[-1].similarity_score:.4f})"
+            )
             return retrieved
         
         except Exception as e:

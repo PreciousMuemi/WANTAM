@@ -19,6 +19,10 @@ from io import BytesIO
 import tiktoken
 from tqdm import tqdm
 from supabase import create_client, Client
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -314,6 +318,53 @@ def fetch_pdf_urls_from_kenyalaw() -> List[tuple[str, str]]:
         return []
 
 
+def load_pdf_urls_from_file(file_path: str) -> List[tuple[str, str]]:
+    """
+    Load PDF URLs from a local file.
+
+    Format per line:
+    - url
+    - url|Title of Document
+    Lines starting with # are ignored.
+    """
+    urls: List[tuple[str, str]] = []
+    path = Path(file_path)
+    if not path.exists():
+        return urls
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "|" in line:
+                    url, title = line.split("|", 1)
+                    urls.append((url.strip(), title.strip()))
+                else:
+                    urls.append((line, "Untitled Document"))
+        return urls
+    except Exception as e:
+        logger.error(f"Error reading PDF URLs file {file_path}: {e}")
+        return []
+
+
+def load_local_pdfs(local_dir: str) -> List[tuple[str, str]]:
+    """
+    Load local PDF file paths from a directory.
+    Returns list of (file_path, title).
+    """
+    paths: List[tuple[str, str]] = []
+    folder = Path(local_dir)
+    if not folder.exists() or not folder.is_dir():
+        return paths
+
+    for pdf in sorted(folder.glob("*.pdf")):
+        title = pdf.stem.replace("_", " ")
+        paths.append((str(pdf), title))
+    return paths
+
+
 def main():
     """Main processing pipeline."""
     
@@ -328,16 +379,31 @@ def main():
         logger.warning(f"Supabase not configured: {e}. Saving to JSON only.")
         use_supabase = False
     
-    # Fetch URLs
-    pdf_urls = fetch_pdf_urls_from_kenyalaw()
+    # Collect PDFs from all sources
+    pdf_urls = []
+    
+    # 1. Check local PDF directory first (highest priority)
+    local_dir = os.getenv("PDF_LOCAL_DIR", "")
+    if local_dir:
+        local_pdfs = load_local_pdfs(local_dir)
+        pdf_urls.extend(local_pdfs)
+        logger.info(f"Found {len(local_pdfs)} PDFs in local directory")
+    
+    # 2. Add PDFs from URLs file
+    urls_file = os.getenv("PDF_URLS_FILE", "pdf_urls.txt")
+    file_urls = load_pdf_urls_from_file(urls_file)
+    pdf_urls.extend(file_urls)
+    if file_urls:
+        logger.info(f"Found {len(file_urls)} PDFs from {urls_file}")
+    
+    # 3. Add PDFs from web scraping (optional, commented out for now)
+    # web_urls = fetch_pdf_urls_from_kenyalaw()
+    # pdf_urls.extend(web_urls)
+    # if web_urls:
+    #     logger.info(f"Found {len(web_urls)} PDFs from web scraping")
     
     if not pdf_urls:
-        logger.warning("No PDFs found. Please configure the fetch_pdf_urls_from_kenyalaw() function")
-        # For testing, you can hardcode URLs:
-        # pdf_urls = [
-        #     ("https://example.com/doc1.pdf", "Document 1"),
-        #     ("https://example.com/doc2.pdf", "Document 2"),
-        # ]
+        logger.warning("No PDFs found. Add URLs to pdf_urls.txt, set PDF_URLS_FILE, or set PDF_LOCAL_DIR.")
         pdf_urls = []
     
     all_chunks = []
@@ -354,19 +420,27 @@ def main():
                     pbar.update(1)
                     continue
                 
-                # Download PDF
-                pdf_path = downloader.download_pdf(url)
-                if not pdf_path:
-                    pbar.update(1)
-                    continue
+                # Download PDF (or use local file)
+                pdf_path = None
+                local_path = Path(url)
+                if url.startswith("file://"):
+                    pdf_path = url.replace("file://", "")
+                elif local_path.exists():
+                    pdf_path = str(local_path)
+                else:
+                    pdf_path = downloader.download_pdf(url)
+                    if not pdf_path:
+                        pbar.update(1)
+                        continue
                 
                 # Process PDF
                 chunks = processor.process_pdf(pdf_path, url, title)
                 all_chunks.extend(chunks)
                 
-                # Clean up downloaded file
+                # Clean up downloaded file (skip for local files)
                 try:
-                    os.remove(pdf_path)
+                    if not Path(pdf_path).exists() or not local_path.exists():
+                        os.remove(pdf_path)
                 except:
                     pass
             

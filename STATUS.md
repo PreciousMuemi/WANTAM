@@ -7,25 +7,31 @@ The dimension mismatch issue has been **completely fixed**. Follow the checklist
 ---
 
 ## What Was Wrong
+
 ```
 ERROR: 'different vector dimensions 1536 and 3072'
 ```
-- Database schema: OpenAI 1536D embeddings  
-- Gemini API: Outputs 3072D embeddings  
+
+- Database schema: OpenAI 1536D embeddings
+- Gemini API: Outputs 3072D embeddings
 - Result: Vector operations failed
 
 ---
 
 ## What's Fixed
+
 ✅ **katiba_rag.py**
+
 - Embedding model: `models/embedding-001` → `models/gemini-embedding-001`
 - Dimensions: `384` → `3072`
 
 ✅ **supabase_setup.sql**
+
 - Column type: `vector(1536)` → `vector(3072)`
 - Function signature: Updated to 3072D
 
 ✅ **New Tool: re_embed_gemini.py**
+
 - Re-embeds all 54 chunks with Gemini
 - Uploads to Supabase with correct dimensions
 
@@ -34,34 +40,44 @@ ERROR: 'different vector dimensions 1536 and 3072'
 ## Quick Start (5 minutes)
 
 ### 1. Update Supabase Schema
+
 **File to read:** [SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md) - **Step 1**
+
 - Copy SQL code
 - Paste in Supabase SQL Editor
 - Run and verify success
 
 ### 2. Clear Old Embeddings
+
 **File to read:** [SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md) - **Step 2**
+
 - Run: `delete from documents;` in Supabase
 
 ### 3. Re-embed with Gemini
+
 **Command:**
+
 ```bash
 python re_embed_gemini.py
 ```
 
 **Expected output:**
+
 - Loads 54 chunks
 - Generates 3072D Gemini embeddings
 - Uploads to Supabase
 - Shows "SUCCESS!" message
 
 ### 4. Test
+
 **Command:**
+
 ```bash
 python katiba_rag.py
 ```
 
 **Try asking:**
+
 ```
 You: What is the constitution?
 ```
@@ -70,12 +86,12 @@ You: What is the constitution?
 
 ## Documentation Files
 
-| File | Purpose | Read If |
-|------|---------|----------|
-| **CHECKLIST.md** | Step-by-step checklist | You want to follow exact steps |
-| **SOLUTION_SUMMARY.md** | Complete technical details | You need full context |
-| **GEMINI_FIX.md** | Quick reference guide | You want concise instructions |
-| **MIGRATE_TO_GEMINI.md** | Migration guide | You're curious about what changed |
+| File                     | Purpose                    | Read If                           |
+| ------------------------ | -------------------------- | --------------------------------- |
+| **CHECKLIST.md**         | Step-by-step checklist     | You want to follow exact steps    |
+| **SOLUTION_SUMMARY.md**  | Complete technical details | You need full context             |
+| **GEMINI_FIX.md**        | Quick reference guide      | You want concise instructions     |
+| **MIGRATE_TO_GEMINI.md** | Migration guide            | You're curious about what changed |
 
 ---
 
@@ -130,15 +146,15 @@ Katiba AI: "The constitution is... [answer with sources]"
 
 ## Key Numbers
 
-| Metric | Value |
-|--------|-------|
-| Total chunks | 54 |
-| Embedding dimensions | 3072 |
-| Embedding model | `models/gemini-embedding-001` |
-| LLM model | `gemini-1.5-flash` |
-| Vector DB | Supabase pgvector |
-| Top results returned | 5 |
-| Cost | Free (Gemini free tier) |
+| Metric               | Value                         |
+| -------------------- | ----------------------------- |
+| Total chunks         | 54                            |
+| Embedding dimensions | 3072                          |
+| Embedding model      | `models/gemini-embedding-001` |
+| LLM model            | `gemini-1.5-flash`            |
+| Vector DB            | Supabase pgvector             |
+| Top results returned | 5                             |
+| Cost                 | Free (Gemini free tier)       |
 
 ---
 
@@ -154,13 +170,13 @@ Katiba AI: "The constitution is... [answer with sources]"
 
 ## Timeline
 
-| Task | Time | Status |
-|------|------|--------|
-| Update Supabase schema | 1 min | Ready |
-| Delete old embeddings | 30 sec | Ready |
-| Re-embed 54 chunks | 2-3 min | Ready (script provided) |
-| Test system | 1 min | Ready |
-| **TOTAL** | **~5 min** | **Ready!** |
+| Task                   | Time       | Status                  |
+| ---------------------- | ---------- | ----------------------- |
+| Update Supabase schema | 1 min      | Ready                   |
+| Delete old embeddings  | 30 sec     | Ready                   |
+| Re-embed 54 chunks     | 2-3 min    | Ready (script provided) |
+| Test system            | 1 min      | Ready                   |
+| **TOTAL**              | **~5 min** | **Ready!**              |
 
 ---
 
@@ -169,18 +185,23 @@ Katiba AI: "The constitution is... [answer with sources]"
 **After following all steps, still getting errors?**
 
 1. **Check SQL migration succeeded:**
+
    ```sql
    select array_length(embedding, 1) from documents limit 1;
    ```
+
    Should return `3072` or `NULL` (if no documents yet)
 
 2. **Check embeddings exist:**
+
    ```sql
    select count(*) from documents;
    ```
+
    Should show `54` after re-embedding
 
 3. **Verify Gemini is working:**
+
    ```bash
    python test_gemini.py
    ```
@@ -224,8 +245,9 @@ Overall: 🟢 READY TO DEPLOY
 ## Questions?
 
 All documentation is in the same folder:
+
 - See **SOLUTION_SUMMARY.md** for complete technical details
-- See **CHECKLIST.md** for step-by-step instructions  
+- See **CHECKLIST.md** for step-by-step instructions
 - See **GEMINI_FIX.md** for quick reference
 
 Everything is ready. Just follow the steps! 🚀

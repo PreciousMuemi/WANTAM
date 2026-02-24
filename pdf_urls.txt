@@ -1,0 +1,11 @@
+# Direct PDF links (scraper downloads these)
+https://kenyalaw.org/kl/fileadmin/pdfdownloads/TheConstitutionOfKenya.pdf|Constitution of Kenya 2010
+
+# Non-PDF pages (browse and add specific PDF links from these pages)
+# https://new.kenyalaw.org/legislation/
+# https://new.kenyalaw.org/
+# https://new.kenyalaw.org/bills/
+# https://www.parliament.go.ke/the-national-assembly/committees
+# https://new.kenyalaw.org/gazettes/
+# https://new.kenyalaw.org/judgments/court-class/tribunals/
+#https://new.kenyalaw.org/legislation/

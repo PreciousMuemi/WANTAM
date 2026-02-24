@@ -3,12 +3,14 @@
 Copy and paste the checklist below. Complete each step and check it off.
 
 ## ✓ Pre-Check
+
 - [ ] You have Supabase URL and key in `.env`
 - [ ] You have Gemini API key in `.env`
 - [ ] You've run `pip install google-generativeai` (already done ✓)
 - [ ] Extracted chunks exist at `extracted_chunks/chunks.json` (54 chunks)
 
 ## ✓ Step 1: Update Supabase (1 min)
+
 - [ ] Open https://supabase.com and log in
 - [ ] Go to your project dashboard
 - [ ] Click **SQL Editor** on the left
@@ -22,6 +24,7 @@ Copy and paste the checklist below. Complete each step and check it off.
 - [ ] See confirmation message
 
 ## ✓ Step 2: Re-embed Chunks (3 min)
+
 - [ ] Open PowerShell/Terminal
 - [ ] Navigate: `cd "c:\Users\SOOQ ELASER\WANTAM"`
 - [ ] Run: `python re_embed_gemini.py`
@@ -29,6 +32,7 @@ Copy and paste the checklist below. Complete each step and check it off.
 - [ ] See success message: "54 chunks with 3072-dim Gemini embeddings"
 
 ## ✓ Step 3: Test System (2 min)
+
 - [ ] Still in PowerShell, run: `python katiba_rag.py`
 - [ ] See the Katiba AI welcome message
 - [ ] See "Processing question" prompt
@@ -38,17 +42,18 @@ Copy and paste the checklist below. Complete each step and check it off.
 - [ ] Type: `quit` to exit
 
 ## ✓ Done!
+
 If you completed all steps with ✓, you're ready to use Katiba AI!
 
 ---
 
 ## What Each Step Does
 
-| Step | What | Why |
-|------|------|-----|
-| Step 1 | Update database schema | Database was 1536D, needs 3072D |
-| Step 2 | Generate Gemini embeddings | Old embeddings won't work |
-| Step 3 | Test the pipeline | Verify everything works |
+| Step   | What                       | Why                             |
+| ------ | -------------------------- | ------------------------------- |
+| Step 1 | Update database schema     | Database was 1536D, needs 3072D |
+| Step 2 | Generate Gemini embeddings | Old embeddings won't work       |
+| Step 3 | Test the pipeline          | Verify everything works         |
 
 ---
 
