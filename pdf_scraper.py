@@ -414,12 +414,6 @@ def main():
             pbar.set_description(f"Processing: {title[:30]}")
             
             try:
-                # Check if already processed
-                if use_supabase and supabase_manager.check_existing_url(url):
-                    logger.info(f"URL already in database, skipping: {url}")
-                    pbar.update(1)
-                    continue
-                
                 # Download PDF (or use local file)
                 pdf_path = None
                 local_path = Path(url)
@@ -459,9 +453,11 @@ def main():
     except Exception as e:
         logger.error(f"Error saving JSON: {e}")
     
-    # Upload to Supabase
+    # Note: Do not upload to Supabase here.
+    # Embeddings are generated in re_embed_gemini.py.
+    # Uploading raw chunks here creates rows with NULL embeddings.
     if use_supabase and all_chunks:
-        supabase_manager.insert_chunks(all_chunks)
+        logger.info("Skipping Supabase upload in pdf_scraper.py (no embeddings yet). Run re_embed_gemini.py to upload embedded chunks.")
     
     # Summary
     logger.info(f"\n{'='*50}")

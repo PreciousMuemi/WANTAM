@@ -38,22 +38,26 @@ def load_chunks(json_path: str = "extracted_chunks/chunks.json") -> List[Dict[st
         logger.error(f"Chunk file not found: {json_path}")
         return []
 
-def generate_embeddings_gemini(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Generate Gemini embeddings for chunks."""
+def generate_embeddings_gemini(chunks: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Generate Gemini embeddings for chunks.
+
+    Returns (embedded_chunks, remaining_chunks).
+    """
     if not GEMINI_API_KEY:
         logger.error("GEMINI_API_KEY not set")
-        return []
+        return [], []
     
     try:
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
     except ImportError:
         logger.error("google-generativeai not installed. Run: pip install google-generativeai")
-        return []
+        return [], []
     
-    embedded_chunks = []
+    embedded_chunks: List[Dict[str, Any]] = []
+    remaining_chunks: List[Dict[str, Any]] = []
     
-    for chunk in tqdm(chunks, desc="Generating Gemini embeddings"):
+    for index, chunk in enumerate(tqdm(chunks, desc="Generating Gemini embeddings")):
         try:
             # Generate embedding
             result = genai.embed_content(
@@ -67,13 +71,29 @@ def generate_embeddings_gemini(chunks: List[Dict[str, Any]]) -> List[Dict[str, A
             embedded_chunks.append(chunk)
         
         except Exception as e:
+            message = str(e)
             logger.error(f"Error embedding chunk {chunk.get('chunk_id')}: {e}")
+            if "429" in message or "quota" in message.lower():
+                logger.error("Quota exceeded. Stopping early to avoid partial uploads.")
+                remaining_chunks = chunks[index:]
+                break
             continue
     
     logger.info(f"Generated embeddings for {len(embedded_chunks)} chunks")
-    return embedded_chunks
+    return embedded_chunks, remaining_chunks
 
-def upload_to_supabase(chunks: List[Dict[str, Any]]) -> bool:
+def _delete_existing_for_sources(supabase, source_urls: List[str]) -> None:
+    """Delete existing rows for the provided source URLs to avoid duplicates."""
+    if not source_urls:
+        return
+    batch_size = 50
+    for i in range(0, len(source_urls), batch_size):
+        batch = source_urls[i:i + batch_size]
+        supabase.table("documents").delete().in_("source_url", batch).execute()
+        logger.info(f"Deleted existing rows for {len(batch)} source URLs")
+
+
+def upload_to_supabase(chunks: List[Dict[str, Any]], source_urls: List[str]) -> bool:
     """Upload embedded chunks to Supabase."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         logger.error("Supabase credentials not set")
@@ -85,6 +105,9 @@ def upload_to_supabase(chunks: List[Dict[str, Any]]) -> bool:
     
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+        # Remove existing rows for these source URLs to avoid duplicates
+        _delete_existing_for_sources(supabase, source_urls)
         
         # Batch insert
         batch_size = 100
@@ -122,26 +145,57 @@ def main():
     
     # Load chunks
     print("\n[1/3] Loading chunks from JSON...")
-    chunks = load_chunks()
+    chunks_file = os.getenv("CHUNKS_FILE", "extracted_chunks/chunks.json")
+    chunks = load_chunks(chunks_file)
     if not chunks:
         logger.error("No chunks to process")
         return False
+
+    # Optional filter by source URL substring(s)
+    source_filter = os.getenv("EMBED_SOURCE_FILTER", "").strip()
+    if source_filter:
+        filters = [s.strip().lower() for s in source_filter.split(",") if s.strip()]
+        filtered = []
+        for c in chunks:
+            url = (c.get("source_url") or "").lower()
+            if any(f in url for f in filters):
+                filtered.append(c)
+        logger.info(f"Filtered chunks by EMBED_SOURCE_FILTER ({filters}): {len(filtered)} of {len(chunks)}")
+        chunks = filtered
     
     # Generate embeddings
     print("\n[2/3] Generating Gemini embeddings...")
-    embedded_chunks = generate_embeddings_gemini(chunks)
+    embedded_chunks, remaining_chunks = generate_embeddings_gemini(chunks)
     if not embedded_chunks:
         logger.error("Failed to generate embeddings")
         return False
     
     # Upload to Supabase
     print("\n[3/3] Uploading to Supabase...")
-    success = upload_to_supabase(embedded_chunks)
+    # Avoid uploading partial documents if we hit quota
+    embedded_sources = {c.get('source_url') for c in embedded_chunks if c.get('source_url')}
+    remaining_sources = {c.get('source_url') for c in remaining_chunks if c.get('source_url')}
+    complete_sources = sorted(embedded_sources - remaining_sources)
+
+    upload_chunks = [c for c in embedded_chunks if c.get('source_url') in complete_sources]
+
+    if remaining_chunks:
+        pending_chunks = remaining_chunks + [c for c in embedded_chunks if c.get('source_url') in remaining_sources]
+        pending_path = Path("extracted_chunks/pending_chunks.json")
+        with open(pending_path, "w", encoding="utf-8") as f:
+            json.dump(pending_chunks, f, ensure_ascii=False, indent=2)
+        logger.warning(f"Saved {len(pending_chunks)} pending chunks to {pending_path}")
+
+    if not upload_chunks:
+        logger.error("No complete documents to upload (quota likely exceeded).")
+        return False
+
+    success = upload_to_supabase(upload_chunks, complete_sources)
     
     print("\n" + "=" * 60)
     if success:
         print("SUCCESS! Chunks re-embedded and uploaded.")
-        print(f"Total: {len(embedded_chunks)} chunks with 3072-dim Gemini embeddings")
+        print(f"Total: {len(upload_chunks)} chunks with 3072-dim Gemini embeddings")
     else:
         print("FAILED! Check logs above for errors.")
     print("=" * 60)
