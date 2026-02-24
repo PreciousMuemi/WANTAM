@@ -10,7 +10,7 @@ create table if not exists documents (
   text text not null,
   page_number integer not null,
   token_count integer,
-  embedding vector(1536)
+  embedding vector(3072)
 );
 
 -- Create index for faster similarity search
@@ -24,7 +24,7 @@ create index if not exists documents_source_url_idx
 
 -- Create RPC function for vector similarity search
 create or replace function match_documents (
-  query_embedding vector(1536),
+  query_embedding vector(3072),
   match_count int default 5
 )
 returns table (

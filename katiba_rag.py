@@ -43,7 +43,7 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
 HF_API_KEY = os.getenv("HF_API_KEY", "")
 
 TOP_K_RESULTS = 5
-EMBEDDING_DIMENSIONS = 384  # For sentence-transformers
+EMBEDDING_DIMENSIONS = 3072  # For Gemini embedding (gemini-embedding-001)
 
 # System prompt for Claude
 SYSTEM_PROMPT = """You are Katiba AI, a helpful assistant that explains Kenyan law 
@@ -117,9 +117,12 @@ class EmbeddingGenerator:
                 return response.data[0].embedding
             
             elif self.provider == "gemini":
-                import google.generativeai as genai
+                try:
+                    import google.genai as genai
+                except ImportError:
+                    import google.generativeai as genai
                 result = genai.embed_content(
-                    model="models/embedding-001",
+                    model="models/gemini-embedding-001",
                     content=text.strip()
                 )
                 return result['embedding']
@@ -262,7 +265,19 @@ class ClaudeQA:
                 raise ValueError("GEMINI_API_KEY environment variable required")
             import google.generativeai as genai
             genai.configure(api_key=GEMINI_API_KEY)
-            self.model = "gemini-1.5-flash"
+            # Auto-select a model that supports generateContent
+            self.model = None
+            try:
+                for model in genai.list_models():
+                    methods = getattr(model, "supported_generation_methods", [])
+                    if methods and "generateContent" in methods:
+                        self.model = model.name
+                        break
+            except Exception:
+                self.model = None
+            if not self.model:
+                # Fallback to known model name; will error with a clear message if unavailable
+                self.model = "models/gemini-1.0-pro"
         
         elif provider == "ollama":
             import requests
@@ -298,7 +313,10 @@ Question: {question}"""
                 answer = response.content[0].text
             
             elif self.provider == "gemini":
-                import google.generativeai as genai
+                try:
+                    import google.genai as genai
+                except ImportError:
+                    import google.generativeai as genai
                 full_prompt = f"{SYSTEM_PROMPT}\n\n{user_message}"
                 model = genai.GenerativeModel(self.model)
                 response = model.generate_content(full_prompt)
